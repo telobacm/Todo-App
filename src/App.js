@@ -20,7 +20,7 @@ function App() {
   };
 
   const unDo = (item, i) => {
-    var array = [...doing];
+    var array = [...done];
     array.splice(i, 1);
     setDone(array);
     setDoing((doing) => [...doing, item]);
