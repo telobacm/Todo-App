@@ -1,0 +1,48 @@
+{
+  "list": [
+    {
+      "id": 1,
+      "value": "ngoding",
+      "group": "todo"
+    },
+    {
+      "id": 6,
+      "value": "bobok",
+      "group": "done"
+    },
+    {
+      "value": "fokus",
+      "group": "todo",
+      "id": 7
+    },
+    {
+      "value": "janlup console.log",
+      "group": "todo",
+      "id": 8
+    }
+  ],
+  "doing": [
+    {
+      "id": 1,
+      "value": "ngoding"
+    },
+    {
+      "id": 4,
+      "value": "pahami algoritma"
+    },
+    {
+      "id": 2,
+      "value": "fokuss"
+    }
+  ],
+  "done": [
+    {
+      "id": 6,
+      "value": "bobok"
+    },
+    {
+      "id": 5,
+      "value": "mangan"
+    }
+  ]
+}

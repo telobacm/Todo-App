@@ -101,13 +101,6 @@ function App() {
   //   }, {});
   //   console.log(groupped.todo);
   // };
-allowDrop(e) {
-  e.preventDefault();
-}
-
-  const dropA = (e) => {
-console.log("item dropped");
-  }
 
   return (
     <div className="App">
@@ -118,7 +111,7 @@ console.log("item dropped");
             <div className="grid gap-4 content-start">
               {list.map((item, i) => {
                 return item.group === "todo" ? (
-                  <div key={i} className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3" id={item.id} ondrop = {(e)=>dropA(e)} ondragover="allowDrop(event)">
+                  <div key={i} className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3">
                     <div className="justify-center col-span-2">{item.value}</div>
                     <div className="grid grid-flow-col gap-3 col-span-1">
                       <button onClick={() => openModal(i, item.id)}>

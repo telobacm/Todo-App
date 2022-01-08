@@ -3,15 +3,20 @@ import { useState, useEffect, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import axios from "axios";
 
+//This file is working properly actually. But for more additional features such as drag and drop it might be kinda tricky because it uses 2 endpoints and 2 arrays. So why don't we just simplify it with single endpoint and array
+
 function App() {
-  const [list, setList] = useState([]);
+  const [doing, setDoing] = useState([]);
+  const [done, setDone] = useState([]);
   const [newTask, setNewTask] = useState("");
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
-  const API_URL = "http://localhost:3004/list";
+  const API_URL = "http://localhost:3004";
+  const configPost = { headers: { "Content-Type": "application/json" } };
 
   function getData() {
-    axios.get(API_URL).then((res) => setList(res.data));
+    axios.get(API_URL + "/doing").then((res) => setDoing(res.data));
+    axios.get(API_URL + "/done").then((res) => setDone(res.data));
   }
 
   useEffect(() => {
@@ -19,46 +24,61 @@ function App() {
   }, []);
 
   const addTask = () => {
-    const payload = { value: newTask, group: "todo" };
-    //id doesn't necessarily to be written in payload, json-server got auto id increment by default
+    const num =
+      Math.max(
+        Math.max.apply(
+          Math,
+          doing.map((obj) => {
+            return obj.id;
+          })
+        ),
+        Math.max.apply(
+          Math,
+          done.map((obj) => {
+            return obj.id;
+          })
+        )
+      ) + 1;
+    const payload = { id: num, value: newTask };
     const configPost = { headers: { "Content-Type": "application/json" } };
+
     newTask == ""
       ? alert("tulis dulu kegiatannya")
       : axios
-          .post(API_URL, payload, configPost)
-          .then((res) => {
-            getData();
-            console.log(res);
-          })
+          .post(`${API_URL}/doing`, payload, configPost)
+          .then(getData())
           .catch((error) => console.log(error));
     setNewTask("");
   };
 
-  const setAsDone = async (item) => {
-    const payload = { id: item.id, value: item.value, group: "done" };
-    axios
-      .patch(`${API_URL}/${item.id}`, payload)
-      .then((res) => {
-        getData();
-        console.log(res.data);
-      })
+  const setAsDone = async (item, i) => {
+    var array = [...doing];
+    const payload = Object.assign({}, ...array.splice(i, 1));
+    // console.log(payload);
+    await axios.delete(`${API_URL}/doing/${payload.id}`).catch((err) => console.log(err));
+    await axios
+      .post(`${API_URL}/done`, payload, configPost)
+      .then(getData())
       .catch((error) => console.log(error));
+    // getData();
   };
 
-  const unDo = async (item) => {
-    const payload = { id: item.id, value: item.value, group: "todo" };
-    axios
-      .patch(`${API_URL}/${item.id}`, payload)
-      .then(getData(), (res) => console.log(res))
+  const unDo = async (item, i) => {
+    var array = [...done];
+    const payload = Object.assign({}, ...array.splice(i, 1));
+    await axios.delete(`${API_URL}/done/${payload.id}`).catch((err) => console.log(err));
+    await axios
+      .post(`${API_URL}/doing`, payload, configPost)
+      .then(getData())
       .catch((error) => console.log(error));
+    // getData();
   };
 
-  const del = (i) => {
-    const num = list[i].id;
-    axios
-      .delete(`${API_URL}/${num}`)
-      .then(() => getData())
-      .catch((err) => console.log(err));
+  const del = (item, i, e) => {
+    const gol = e.target.name;
+    const num = gol == "doing" ? doing[i].id : done[i].id;
+    axios.delete(`${API_URL}/${e.target.name}/${num}`).catch((err) => console.log(err));
+    getData();
   };
 
   let [isOpen, setIsOpen] = useState(false);
@@ -75,65 +95,44 @@ function App() {
   }
 
   const edit = () => {
-    const payload = { value: newTask };
+    const payload = { id: editId, value: newTask };
     if (newTask === "") {
       console.log(`nggak ada perubahan`);
       closeModal();
     } else {
       axios
-        .patch(`${API_URL}/${editId}`, payload)
-        .then((res) => {
-          getData();
-          console.log(res.data);
-        })
+        .patch(`${API_URL}/doing/${editId}`, payload)
+        .then((res) => console.log(res))
         .catch((error) => console.log(error));
+      getData();
       closeModal();
       setNewTask("");
     }
   };
 
-  /* grouping cara rempong */
-  // const grouping = () => {
-  //   let copy = [...list];
-  //   let groupped = copy.reduce((reducer, array) => {
-  //     reducer[array.group] = [...(reducer[array.group] || []), array];
-  //     return reducer;
-  //   }, {});
-  //   console.log(groupped.todo);
-  // };
-allowDrop(e) {
-  e.preventDefault();
-}
-
-  const dropA = (e) => {
-console.log("item dropped");
-  }
-
   return (
     <div className="App">
       <header className="App-header h-screen">
         <div className="flex border-4 w-5/6 h-5/6 border-white p-4 gap-4 rounded-xl">
-          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl">
+          <div className="grid content-start h-full w-1/2 border-2 px-8 border-white rounded-xl">
             <h3 className="underline mt-4 mb-2">Todo</h3>
             <div className="grid gap-4 content-start">
-              {list.map((item, i) => {
-                return item.group === "todo" ? (
-                  <div key={i} className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3" id={item.id} ondrop = {(e)=>dropA(e)} ondragover="allowDrop(event)">
-                    <div className="justify-center col-span-2">{item.value}</div>
-                    <div className="grid grid-flow-col gap-3 col-span-1">
-                      <button onClick={() => openModal(i, item.id)}>
-                        <img src="edit.png" className="h-7" />
-                      </button>
-                      <button onClick={(e) => del(i)}>
-                        <img src="delete.png" name="doing" className="h-8" />
-                      </button>
-                      <button onClick={() => setAsDone(item)}>
-                        <img src="done.png" className="h-8" />
-                      </button>
-                    </div>
+              {doing.map((item, i) => (
+                <div key={i} className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3">
+                  <div className="justify-center col-span-2">{item.value}</div>
+                  <div className="grid grid-flow-col gap-3 col-span-1">
+                    <button onClick={() => openModal(i, item.id)}>
+                      <img src="edit.png" className="h-7" />
+                    </button>
+                    <button onClick={(e) => del(item, i, e)}>
+                      <img src="delete.png" name="doing" className="h-8" />
+                    </button>
+                    <button onClick={() => setAsDone(item, i)}>
+                      <img src="done.png" className="h-8" />
+                    </button>
                   </div>
-                ) : null;
-              })}
+                </div>
+              ))}
 
               <div className="flex space-4 border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3">
                 <input onChange={(e) => setNewTask(e.target.value)} type="text" placeholder="tulis kegiatan baru" className="bg-main text-center w-full mr-5 text-lg " />
@@ -143,24 +142,22 @@ console.log("item dropped");
               </div>
             </div>
           </div>
-          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl">
+          <div className="grid content-start h-full w-1/2 border-2 px-8 border-white rounded-xl">
             <h3 className="underline mt-4 mb-2">Done</h3>
             <div className="grid gap-4 content-start">
-              {list.map((item, i) => {
-                return item.group === "done" ? (
-                  <div key={i} className="flex border border-green-400 outline-4 outline-red rounded-xl px-4 py-2 h-min w-full grid-cols-3">
-                    <div className="grid grid-flow-col gap-3 col-span-1">
-                      <button onClick={() => unDo(item)}>
-                        <img src="undo.png" className="h-8" />
-                      </button>
-                      <button name="done" onClick={(e) => del(i)}>
-                        <img src="delete.png" name="done" className="h-8" />
-                      </button>
-                    </div>
-                    <div className="col-span-2 ml-8">{item.value}</div>
+              {done.map((item, i) => (
+                <div key={i} className="flex border border-green-400 outline-4 outline-red rounded-xl px-4 py-2 h-min w-full grid-cols-3">
+                  <div className="grid grid-flow-col gap-3 col-span-1">
+                    <button onClick={() => unDo(item, i)}>
+                      <img src="undo.png" className="h-8" />
+                    </button>
+                    <button name="done" onClick={(e) => del(item, i, e)}>
+                      <img src="delete.png" name="done" className="h-8" />
+                    </button>
                   </div>
-                ) : null;
-              })}
+                  <div className="col-span-2 ml-8">{item.value}</div>
+                </div>
+              ))}
             </div>
             <div className="grid content-start"></div>
           </div>
@@ -187,7 +184,7 @@ console.log("item dropped");
               leaveTo="opacity-0 scale-95"
             >
               <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
-                <input type="text" className="px-4 py-2" defaultValue={editIndex !== null ? list[editIndex].value : ""} onChange={(e) => setNewTask(e.target.value)} />
+                <input type="text" className="px-4 py-2" defaultValue={editIndex !== null ? doing[editIndex].value : ""} onChange={(e) => setNewTask(e.target.value)} />
                 <div className="mt-4">
                   <button
                     type="button"
