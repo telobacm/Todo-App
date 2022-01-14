@@ -11,7 +11,9 @@ function App() {
   const API_URL = "http://localhost:3004/list";
 
   function getData() {
-    axios.get(API_URL).then((res) => setList(res.data));
+    axios.get(API_URL).then((res) => {
+      setList(res.data);
+    });
   }
 
   useEffect(() => {
@@ -22,7 +24,7 @@ function App() {
     const payload = { value: newTask, group: "todo" };
     //id doesn't necessarily to be written in payload, json-server got auto id increment by default
     const configPost = { headers: { "Content-Type": "application/json" } };
-    newTask == ""
+    newTask === ""
       ? alert("tulis dulu kegiatannya")
       : axios
           .post(API_URL, payload, configPost)
@@ -34,22 +36,16 @@ function App() {
     setNewTask("");
   };
 
-  const setAsDone = async (item) => {
-    const payload = { id: item.id, value: item.value, group: "done" };
+  const moveGroup = async (item) => {
+    var grup = item.group === "todo" ? "done" : "todo";
+    const payload = { id: item.id, value: item.value, group: grup };
+
     axios
       .patch(`${API_URL}/${item.id}`, payload)
       .then((res) => {
         getData();
         console.log(res.data);
       })
-      .catch((error) => console.log(error));
-  };
-
-  const unDo = async (item) => {
-    const payload = { id: item.id, value: item.value, group: "todo" };
-    axios
-      .patch(`${API_URL}/${item.id}`, payload)
-      .then(getData(), (res) => console.log(res))
       .catch((error) => console.log(error));
   };
 
@@ -101,34 +97,57 @@ function App() {
   //   }, {});
   //   console.log(groupped.todo);
   // };
-allowDrop(e) {
-  e.preventDefault();
-}
+  const dragOver = (e) => {
+    e.preventDefault();
+  };
 
-  const dropA = (e) => {
-console.log("item dropped");
-  }
+  const drop = (e) => {
+    console.log("item dropped");
+    var item = JSON.parse(e.dataTransfer.getData("text"));
+    var grup = item.group === "todo" ? "done" : "todo";
+    // console.log(grup);
+    const payload = { id: item.id, value: item.value, group: grup };
+    axios
+      .patch(`${API_URL}/${item.id}`, payload)
+      .then((res) => {
+        getData();
+        console.log(res.data);
+      })
+      .catch((error) => console.log(error));
+  };
+
+  const dragStart = (e, item) => {
+    console.log("item dragged");
+    e.dataTransfer.setData("text", JSON.stringify(item));
+    console.log(item);
+  };
 
   return (
     <div className="App">
       <header className="App-header h-screen">
         <div className="flex border-4 w-5/6 h-5/6 border-white p-4 gap-4 rounded-xl">
-          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl">
+          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl" onDrop={(e) => drop(e)} id="todoDiv" onDragOver={(e) => dragOver(e)}>
             <h3 className="underline mt-4 mb-2">Todo</h3>
             <div className="grid gap-4 content-start">
               {list.map((item, i) => {
                 return item.group === "todo" ? (
-                  <div key={i} className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3" id={item.id} ondrop = {(e)=>dropA(e)} ondragover="allowDrop(event)">
+                  <div
+                    key={i}
+                    className="flex justify-between border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3"
+                    id={item.id}
+                    draggable={true}
+                    onDragStart={(e) => dragStart(e, item)}
+                  >
                     <div className="justify-center col-span-2">{item.value}</div>
                     <div className="grid grid-flow-col gap-3 col-span-1">
                       <button onClick={() => openModal(i, item.id)}>
-                        <img src="edit.png" className="h-7" />
+                        <img src="edit.png" alt="edit" className="h-7" />
                       </button>
                       <button onClick={(e) => del(i)}>
-                        <img src="delete.png" name="doing" className="h-8" />
+                        <img src="delete.png" alt="delete" name="doing" className="h-8" />
                       </button>
-                      <button onClick={() => setAsDone(item)}>
-                        <img src="done.png" className="h-8" />
+                      <button onClick={() => moveGroup(item)}>
+                        <img src="done.png" alt="done" className="h-8" />
                       </button>
                     </div>
                   </div>
@@ -138,23 +157,29 @@ console.log("item dropped");
               <div className="flex space-4 border border-cyan-400 rounded-xl px-4 py-2 h-min w-full grid-cols-3">
                 <input onChange={(e) => setNewTask(e.target.value)} type="text" placeholder="tulis kegiatan baru" className="bg-main text-center w-full mr-5 text-lg " />
                 <button onClick={addTask}>
-                  <img src="add.png" className="h-7 my-1" />
+                  <img src="add.png" alt="add" className="h-7 my-1" />
                 </button>
               </div>
             </div>
           </div>
-          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl">
+          <div className="grid content-start h-full overflow-y-auto w-1/2 border-2 px-8 border-white rounded-xl" onDrop={(e) => drop(e)} id="doneDiv" onDragOver={(e) => dragOver(e)}>
             <h3 className="underline mt-4 mb-2">Done</h3>
             <div className="grid gap-4 content-start">
               {list.map((item, i) => {
                 return item.group === "done" ? (
-                  <div key={i} className="flex border border-green-400 outline-4 outline-red rounded-xl px-4 py-2 h-min w-full grid-cols-3">
+                  <div
+                    key={i}
+                    className="flex border border-green-400 outline-4 outline-red rounded-xl px-4 py-2 h-min w-full grid-cols-3"
+                    id={item.id}
+                    draggable={true}
+                    onDragStart={(e) => dragStart(e, item)}
+                  >
                     <div className="grid grid-flow-col gap-3 col-span-1">
-                      <button onClick={() => unDo(item)}>
-                        <img src="undo.png" className="h-8" />
+                      <button onClick={() => moveGroup(item)}>
+                        <img src="undo.png" alt="undo" className="h-8" />
                       </button>
                       <button name="done" onClick={(e) => del(i)}>
-                        <img src="delete.png" name="done" className="h-8" />
+                        <img src="delete.png" alt="delete" name="done" className="h-8" />
                       </button>
                     </div>
                     <div className="col-span-2 ml-8">{item.value}</div>

@@ -8,16 +8,16 @@
     {
       "id": 6,
       "value": "bobok",
-      "group": "done"
+      "group": "todo"
     },
     {
       "value": "fokus",
-      "group": "todo",
+      "group": "done",
       "id": 7
     },
     {
       "value": "janlup console.log",
-      "group": "todo",
+      "group": "done",
       "id": 8
     }
   ],
